@@ -176,18 +176,23 @@ to go-around
     let myx xcor
     let myy ycor
 
-    if(group = "group1" and (xcor <= min-pxcor or xcor - min-pxcor >= model-len / 3 - 1
-                             or ycor - 1 <= min-pycor or ycor + 1 >= max-pycor))[
-      set heading towards one-of patches with [pname = "group1" and pxcor != myx and pycor != myy]
+    if(xcor <= min-pxcor or xcor >= max-pxcor
+                             or ycor <= min-pycor or ycor >= max-pycor)[
+      set heading towards one-of patches with [pxcor != myx and pycor != myy]
     ]
-    if(group = "group2" and (xcor - min-pxcor <= model-len / 3 + 1 or xcor - min-pxcor >= model-len / 3 * 2 - 1
-                             or ycor - 1 <= min-pycor or ycor + 1 >= max-pycor))[
-      set heading towards one-of patches with [pname = "group2" and pxcor != myx and pycor != myy]
-    ]
-    if(group = "group3" and (xcor - min-pxcor <= model-len / 3 * 2 + 1 or xcor >= max-pxcor
-                             or ycor <= min-pycor or ycor >= max-pycor))[
-      set heading towards one-of patches with [pname = "group3" and pxcor != myx and pycor != myy]
-    ]
+
+    ;;if(group = "group1" and (xcor <= min-pxcor or xcor - min-pxcor >= model-len / 3 - 1
+    ;;                         or ycor - 1 <= min-pycor or ycor + 1 >= max-pycor))[
+    ;;  set heading towards one-of patches with [pname = "group1" and pxcor != myx and pycor != myy]
+    ;;]
+    ;;if(group = "group2" and (xcor - min-pxcor <= model-len / 3 + 1 or xcor - min-pxcor >= model-len / 3 * 2 - 1
+    ;;                         or ycor - 1 <= min-pycor or ycor + 1 >= max-pycor))[
+    ;;  set heading towards one-of patches with [pname = "group2" and pxcor != myx and pycor != myy]
+    ;;]
+    ;;if(group = "group3" and (xcor - min-pxcor <= model-len / 3 * 2 + 1 or xcor >= max-pxcor
+    ;;                         or ycor <= min-pycor or ycor >= max-pycor))[
+    ;;  set heading towards one-of patches with [pname = "group3" and pxcor != myx and pycor != myy]
+    ;;]
     fd 0.1
 
     if (any? other turtles-here) [
@@ -510,7 +515,7 @@ INPUTBOX
 810
 170
 interval
-2.0
+14.0
 1
 0
 Number
