@@ -4,36 +4,18 @@ globals[
   ;; 시간 관련
   days
   hours
-  time-for
-  current-trial
 
-  ;; 시작 그룹 수 관련
-  students-group1
-  students-group2
-  students-group3
-
-  infected-group1
-  infected-group2
-  infected-group3
-
-  ;; 총 시도횟수 평균 누적
-  infected-avg-group1
-  infected-avg-group2
-  infected-avg-group3
-
-  ;; tick당 발생된 신규감염자
-  infected-per-tick-group1
-  infected-per-tick-group2
-  infected-per-tick-group3
+  infected-group
+  infected-avg
+  infected-per-tick-group
 
   ;; csv 기록용 리스트 (trial, day, infected)
   infected-record
 
-  ;; R0 평가용 변수
+  ;; R 평가용 변수
   met-avg
-  met-avg-per-trial
   total-contact-rate
-  r0
+  r
   is-first-infected-by-group
 
   ;; 기타
@@ -43,7 +25,6 @@ globals[
 turtles-own[
   status
   after-exposed
-  group
   met
 ]
 
@@ -57,58 +38,22 @@ patches-own[
 ;; red -> 감염(미확인)
 ;; 88 -> 감염(확진 및 격리)
 ;; green -> 회복
-
 to setup
   clear-all
 
   set is-first-infected-by-group false
 
-  set infected-group1 init-infected-group1
-  set infected-group2 init-infected-group2
-  set infected-group3 init-infected-group3
+  set infected-group init-infected-group
   set infected-record (list)
 
   set met-avg 0
-  set met-avg-per-trial 0
 
-  set model-len max-pxcor - min-pxcor + 1
-
-  set-map
-  set-students
+  set-agents
 
   reset-ticks
   set hours 0
   set days 0
-  set current-trial 0
 end
-
-to next-trial
-  clear-patches
-  clear-turtles
-
-  set is-first-infected-by-group false
-
-  reset-ticks
-  set hours 0
-  set days 0
-  set current-trial current-trial + 1
-
-  set infected-group1 init-infected-group1
-  set infected-group2 init-infected-group2
-  set infected-group3 init-infected-group3
-  set infected-per-tick-group1 0
-  set infected-per-tick-group2 0
-  set infected-per-tick-group3 0
-  set met-avg-per-trial 0
-
-  set met-avg 0
-
-
-  set-map
-  set-students
-
-end
-
 
 
 to go
@@ -117,27 +62,16 @@ to go
   go-around
   sair-procedure
 
-  set infected-avg-group1 infected-avg-group1 + infected-per-tick-group1 / trial
-  set infected-avg-group2 infected-avg-group2 + infected-per-tick-group2 / trial
-  set infected-avg-group3 infected-avg-group3 + infected-per-tick-group3 / trial
-
-  set infected-per-tick-group1 0
-  set infected-per-tick-group2 0
-  set infected-per-tick-group3 0
+  ;; R 평가
+  if (count (turtles with [status = "E"]) > 0) [
+    let avg-exposed-day mean [ after-exposed / 2 ] of turtles with [ status = "E" ]
+    set r prob-of-infect * met-avg * avg-exposed-day
+  ]
 
   if (days >= duration) [
-    ;; R0 평가
-    let avg-exposed-day mean [ after-exposed / 2 ] of turtles with [ not (status = "S") ]
-    set total-contact-rate met-avg-per-trial / days
-
-    set r0 prob-of-infect * total-contact-rate * avg-exposed-day * 0.158
-
-    if(current-trial < trial)[ next-trial ]
-    if(current-trial >= trial)[
-      let fname (word "day" interval "-10000-3groups.csv")
-      csv:to-file fname infected-record
-      stop
-    ]
+    let fname (word "results.csv")
+    csv:to-file fname infected-record
+    stop
   ]
 end
 
@@ -150,8 +84,7 @@ to update-time
 
     ;; 일 평균 만난 사람 수
 
-    set met-avg (mean [ met ] of turtles with [group != time-for])
-    set met-avg-per-trial met-avg-per-trial + met-avg
+    set met-avg (mean [ met ] of turtles)
 
     ask turtles [
       set met 0
@@ -159,40 +92,19 @@ to update-time
   ]
 
   if(prev-day != days) [
-    set infected-record lput (list current-trial days (infected-group1 + infected-group2 + infected-group3) ) infected-record
+    set infected-record lput (list days infected-group ) infected-record
   ]
-  check-home-schooling-day
-end
-
-to check-home-schooling-day
-  if ((floor(days / interval)) mod 3 = 0) [ set time-for "group1" ]
-  if ((floor(days / interval)) mod 3 = 1) [ set time-for "group2" ]
-  if ((floor(days / interval)) mod 3 = 2) [ set time-for "group3" ]
 end
 
 to go-around
-
-  ask turtles with [group != time-for] [
+  ask turtles [
     let myx xcor
     let myy ycor
 
     if(xcor <= min-pxcor or xcor >= max-pxcor
-                             or ycor <= min-pycor or ycor >= max-pycor))[
+                             or ycor <= min-pycor or ycor >= max-pycor)[
       set heading towards one-of patches with [pxcor != myx and pycor != myy]
     ]
-
-    ;;if(group = "group1" and (xcor <= min-pxcor or xcor - min-pxcor >= model-len / 3 - 1
-    ;;                         or ycor - 1 <= min-pycor or ycor + 1 >= max-pycor))[
-    ;;  set heading towards one-of patches with [pname = "group1" and pxcor != myx and pycor != myy]
-    ;;]
-    ;;if(group = "group2" and (xcor - min-pxcor <= model-len / 3 + 1 or xcor - min-pxcor >= model-len / 3 * 2 - 1
-    ;;                         or ycor - 1 <= min-pycor or ycor + 1 >= max-pycor))[
-    ;;  set heading towards one-of patches with [pname = "group2" and pxcor != myx and pycor != myy]
-    ;;]
-    ;;if(group = "group3" and (xcor - min-pxcor <= model-len / 3 * 2 + 1 or xcor >= max-pxcor
-    ;;                         or ycor <= min-pycor or ycor >= max-pycor))[
-    ;;  set heading towards one-of patches with [pname = "group3" and pxcor != myx and pycor != myy]
-    ;;]
     fd 0.1
 
     if (any? other turtles-here) [
@@ -203,26 +115,15 @@ end
 
 to sair-procedure
   ;; 마주친 turtle 간 감염 프로세스
-
-  ask turtles with [group != time-for] [
-    ;; S -> A
+  ask turtles [
+    ;; S -> E
     if(status = "S") [
-      if (any? other turtles-here with [status = "A"])[
+      if (any? other turtles-here with [status = "E"])[
         if random-float 1 < prob-of-infect [
           set color red
-          set status "A"
-          if (group = "group1") [
-            set infected-group1 infected-group1 + 1
-            set infected-per-tick-group1 infected-per-tick-group1 + 1
-          ]
-          if (group = "group2") [
-            set infected-group2 infected-group2 + 1
-            set infected-per-tick-group2 infected-per-tick-group2 + 1
-          ]
-          if (group = "group3") [
-            set infected-group3 infected-group3 + 1
-            set infected-per-tick-group3 infected-per-tick-group3 + 1
-          ]
+          set status "E"
+          set infected-group infected-group + 1
+          set infected-per-tick-group infected-per-tick-group + 1
         ]
       ]
     ]
@@ -230,98 +131,45 @@ to sair-procedure
 
   if(ticks mod 60 = 0) [
     ask turtles[
-      ;; A -> I 잠복기 반영
-      if(status = "A") [
+      ;; E -> I 잠복기 반영
+      if(status = "E") [
         let temp-result random-float 1
+        set after-exposed after-exposed + 1
+
+        ;; 14일 후 증상 발현시 격리
         if temp-result < (prob-of-symptom-appear * (after-exposed / 14)) [
           hide-turtle
           set status "I"
+          set after-exposed 0
         ]
-
-        set after-exposed after-exposed + 1
       ]
       if (status = "I")[
         if random-float 1 < prob-of-recovery [
           show-turtle
           set color green
-          set status "I"
+          set status "R"
         ]
-        set after-exposed after-exposed + 1
       ]
     ]
   ]
 end
 
-to set-map
-  ;; 3등분
-  ask patches[
-    if(pxcor - min-pxcor < model-len / 3) [
-      set pcolor 88
-      set pname "group1"
-    ]
-    if(pxcor - min-pxcor < (model-len / 3) * 2 and pxcor - min-pxcor > model-len / 3) [
-      set pcolor 128
-      set pname "group2"
-    ]
-    if(pxcor - min-pxcor > (model-len / 3) * 2)[
-      set pcolor 58
-      set pname "group3"
-    ]
-  ]
-end
+to set-agents
 
-to set-students
-  set students-group1 floor(students-number / 3)
-  set students-group2 floor(students-number / 3)
-  set students-group3 floor(students-number / 3)
-
-  create-turtles students-group1 [
+  create-turtles agents-number [
     set color blue
     set after-exposed 0
     set status "S"
-    set group "group1"
-    move-to one-of patches with [pname = "group1"]
+    move-to one-of patches
   ]
 
-  create-turtles students-group2 [
-    set color blue
-    set after-exposed 0
-    set status "S"
-    set group "group2"
-    move-to one-of patches with [pname = "group2"]
-  ]
-
-  create-turtles students-group3 [
-    set color blue
-    set after-exposed 0
-    set status "S"
-    set group "group3"
-    move-to one-of patches with [pname = "group3"]
-  ]
-
-  ask (n-of init-infected-group1 turtles with [group = "group1"]) [
+  ask (n-of init-infected-group turtles) [
     hide-turtle
     set status "I"
   ]
-  ask (n-of init-asymptom-group1 turtles with [group = "group1"]) [
+  ask (n-of init-asymptom-group turtles) [
     set color red
-    set status "A"
-  ]
-  ask (n-of init-infected-group2 turtles with [group = "group2"]) [
-    hide-turtle
-    set status "I"
-  ]
-  ask (n-of init-asymptom-group2 turtles with [group = "group2"]) [
-    set color red
-    set status "A"
-  ]
-  ask (n-of init-infected-group3 turtles with [group = "group3"]) [
-    hide-turtle
-    set status "I"
-  ]
-  ask (n-of init-asymptom-group3 turtles with [group = "group3"]) [
-    set color red
-    set status "A"
+    set status "E"
   ]
 end
 @#$#@#$#@
@@ -391,8 +239,8 @@ SLIDER
 132
 328
 165
-students-number
-students-number
+agents-number
+agents-number
 100
 2000
 1000.0
@@ -424,25 +272,10 @@ hours
 11
 
 SLIDER
-362
-230
-556
-263
-init-infected-group2
-init-infected-group2
-0
-10
-1.0
-1
-1
-NIL
-HORIZONTAL
-
-SLIDER
-169
-439
-557
-472
+177
+258
+565
+291
 prob-of-infect
 prob-of-infect
 0.001
@@ -453,37 +286,11 @@ prob-of-infect
 NIL
 HORIZONTAL
 
-MONITOR
-726
-33
-801
-78
-NIL
-time-for
-17
-1
-11
-
 SLIDER
-358
-287
-556
-320
-init-asymptom-group2
-init-asymptom-group2
-0
-10
-5.0
-1
-1
-NIL
-HORIZONTAL
-
-SLIDER
-168
-494
-554
-527
+176
+313
+562
+346
 prob-of-symptom-appear
 prob-of-symptom-appear
 0
@@ -495,38 +302,27 @@ NIL
 HORIZONTAL
 
 SLIDER
-170
-545
-555
-578
+178
+364
+563
+397
 prob-of-recovery
 prob-of-recovery
 0
 1
-0.1
+0.07
 0.01
 1
 NIL
 HORIZONTAL
-
-INPUTBOX
-760
-110
-810
-170
-interval
-14.0
-1
-0
-Number
 
 SLIDER
 362
 127
 556
 160
-init-infected-group1
-init-infected-group1
+init-infected-group
+init-infected-group
 0
 10
 1.0
@@ -540,8 +336,8 @@ SLIDER
 182
 557
 215
-init-asymptom-group1
-init-asymptom-group1
+init-asymptom-group
+init-asymptom-group
 0
 10
 5.0
@@ -551,34 +347,12 @@ NIL
 HORIZONTAL
 
 INPUTBOX
-694
-109
-744
-169
+613
+112
+663
+172
 duration
 200.0
-1
-0
-Number
-
-MONITOR
-470
-36
-559
-81
-current-trial
-current-trial
-17
-1
-11
-
-INPUTBOX
-628
-111
-678
-171
-trial
-10000.0
 1
 0
 Number
@@ -588,41 +362,32 @@ MONITOR
 265
 686
 310
-R0
-r0
+R
+r
 17
 1
 11
 
-SLIDER
-358
-338
-559
-371
-init-infected-group3
-init-infected-group3
-0
-10
-1.0
-1
-1
-NIL
-HORIZONTAL
-
-SLIDER
-361
-384
-556
-417
-init-asymptom-group3
-init-asymptom-group3
-0
-10
-5.0
-1
-1
-NIL
-HORIZONTAL
+PLOT
+181
+410
+574
+560
+SEIR
+tick
+number
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"s" 1.0 0 -13345367 true "" "plot count turtles with [status = \"S\"]"
+"e" 1.0 0 -2674135 true "" "plot count turtles with [status = \"E\"]"
+"i" 1.0 0 -9276814 true "" "plot count turtles with [status = \"I\"]"
+"r" 1.0 0 -11085214 true "" "plot count turtles with [status = \"R\"]"
 
 @#$#@#$#@
 ## WHAT IS IT?
