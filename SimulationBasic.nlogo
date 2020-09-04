@@ -50,6 +50,10 @@ to setup
 
   set-agents
 
+  ask patches[
+    set pcolor white
+  ]
+
   reset-ticks
   set hours 0
   set days 0
@@ -174,10 +178,10 @@ to set-agents
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
-882
-83
-1645
-703
+762
+26
+1525
+646
 -1
 -1
 11.98413
