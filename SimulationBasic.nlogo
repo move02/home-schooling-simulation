@@ -122,9 +122,9 @@ to sair-procedure
   ask turtles [
     ;; S -> E
     if(status = "S") [
-      if (any? other turtles-here with [status = "E"])[
+      if (any? other turtles-here with [status = "I"])[
         if random-float 1 < prob-of-infect [
-          set color red
+          set color orange
           set status "E"
           set infected-group infected-group + 1
           set infected-per-tick-group infected-per-tick-group + 1
@@ -141,9 +141,10 @@ to sair-procedure
         set after-exposed after-exposed + 1
 
         ;; 14일 후 증상 발현시 격리
-        if temp-result < (prob-of-symptom-appear * (after-exposed / 14)) [
-          hide-turtle
+        ;; if temp-result < (prob-of-symptom-appear * (after-exposed / 14)) [
+        if temp-result < prob-of-symptom-appear [
           set status "I"
+          set color red
           set after-exposed 0
         ]
       ]
@@ -161,6 +162,7 @@ end
 to set-agents
 
   create-turtles agents-number [
+    set shape "person"
     set color blue
     set after-exposed 0
     set status "S"
@@ -299,7 +301,7 @@ prob-of-symptom-appear
 prob-of-symptom-appear
 0
 1
-0.25
+0.49
 0.01
 1
 NIL
@@ -329,7 +331,7 @@ init-infected-group
 init-infected-group
 0
 10
-1.0
+5.0
 1
 1
 NIL
@@ -344,7 +346,7 @@ init-asymptom-group
 init-asymptom-group
 0
 10
-5.0
+8.0
 1
 1
 NIL
